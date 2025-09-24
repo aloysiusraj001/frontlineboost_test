@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PersonaStage } from '@/components/training/PersonaStage';
 import { VoiceControls } from '@/components/training/VoiceControls';
 import { VoiceConversation } from '@/components/training/VoiceConversation';
-import { SetupInstructions } from '@/components/training/SetupInstructions';
+import { SetupInstructions } from '@/components/training/SetupInstructions.tsx';
 import { useVoiceTraining } from '@/hooks/useVoiceTraining';
 import { 
   scenarios, 
@@ -173,7 +173,7 @@ export default function Train() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
-        <SetupInstructions />
+        {/* <SetupInstructions /> */}
         
         <div className="grid grid-cols-12 gap-6">
           {/* Left Column */}
@@ -195,12 +195,7 @@ export default function Train() {
                   <AlertDescription>{voiceError}</AlertDescription>
                 </Alert>
               )}
-              
-              <VoiceConversation
-                messages={conversation}
-                personaName={persona.name}
-              />
-              
+
               <VoiceControls
                 isRecording={isRecording}
                 isProcessing={isProcessing}
@@ -210,6 +205,10 @@ export default function Train() {
                 onReset={resetConversation}
                 onStopSpeech={stopSpeech}
                 disabled={session.status !== 'live'}
+              />
+                <VoiceConversation
+                messages={conversation}
+                personaName={persona.name}
               />
             </div>
           </div>

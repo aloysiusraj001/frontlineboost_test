@@ -27,7 +27,7 @@ export function VoiceConversation({ messages, personaName }: VoiceConversationPr
 
   if (messages.length === 0) {
     return (
-      <div className="h-96 flex items-center justify-center text-muted-foreground bg-card rounded-lg border">
+      <div className="min-h-24 flex items-center justify-center text-muted-foreground bg-card rounded-lg border transition-smooth">
         <div className="text-center">
           <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="text-lg font-medium mb-2">Ready to Start Training</p>
@@ -38,11 +38,11 @@ export function VoiceConversation({ messages, personaName }: VoiceConversationPr
   }
 
   return (
-    <ScrollArea className="h-96 bg-card rounded-lg border">
+    <ScrollArea className="min-h-24 bg-card rounded-lg border transition-smooth">
       <div className="p-4 space-y-4">
         {messages.map((message, index) => {
           const isUser = message.role === 'user';
-          
+
           return (
             <div
               key={index}
@@ -56,11 +56,11 @@ export function VoiceConversation({ messages, personaName }: VoiceConversationPr
                   <Bot className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
               )}
-              
+
               <div className={cn(
                 "max-w-xs lg:max-w-md px-4 py-3 rounded-lg",
-                isUser 
-                  ? "bg-primary text-primary-foreground" 
+                isUser
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted"
               )}>
                 <div className="flex items-center gap-2 mb-1">
@@ -71,10 +71,10 @@ export function VoiceConversation({ messages, personaName }: VoiceConversationPr
                     {formatTime(message.timestamp)}
                   </span>
                 </div>
-                
+
                 <p className="text-sm leading-relaxed">{message.content}</p>
               </div>
-              
+
               {isUser && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <User className="h-4 w-4 text-primary" />
