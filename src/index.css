@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Frontline Boost Design System - Professional SaaS with Teal Accents */
+
+@layer base {
+  :root {
+    /* Light theme colors */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 176 77% 47%;        /* teal-500 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 16% 93%;      /* slate-100 */
+    --secondary-foreground: 215 25% 15%;
+
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 13% 50%;
+
+    --accent: 173 58% 39%;         /* teal-600 */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 176 77% 47%;
+
+    --radius: 0.75rem;
+
+    /* Custom colors for Frontline Boost */
+    --navy: 217 33% 17%;           /* Dark navy for sidebar */
+    --navy-light: 217 33% 22%;     /* Lighter navy for hover states */
+    --glass: 0 0% 100% / 0.1;      /* Glass effect overlay */
+    --glass-border: 0 0% 100% / 0.2;
+
+    /* Sidebar specific colors */
+    --sidebar-background: 217 33% 17%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 176 77% 47%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 22%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 22%;
+    --sidebar-ring: 176 77% 47%;
+  }
+
+  .dark {
+    /* Dark theme colors */
+    --background: 222 84% 5%;      /* Very dark slate */
+    --foreground: 210 40% 98%;
+
+    --card: 217 33% 17%;           /* Navy card background */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 176 77% 47%;        /* teal-500 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 28% 17%;      /* Dark slate */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 9% 65%;
+
+    --accent: 173 58% 39%;         /* teal-600 */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 176 77% 47%;
+
+    /* Dark theme custom colors */
+    --navy: 222 84% 5%;
+    --navy-light: 217 33% 17%;
+    --glass: 255 255 255 / 0.05;
+    --glass-border: 255 255 255 / 0.1;
+
+    /* Dark sidebar colors */
+    --sidebar-background: 222 84% 5%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 176 77% 47%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-ring: 176 77% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+@layer utilities {
+  /* Glass effect utilities */
+  .glass {
+    background: hsl(var(--glass));
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-card {
+    @apply glass rounded-xl;
+  }
+
+  /* Smooth transitions for professional feel */
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Custom gradient backgrounds */
+  .bg-gradient-navy {
+    background: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy-light)));
+  }
+
+  .bg-gradient-teal {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+}
