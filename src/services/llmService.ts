@@ -1,5 +1,4 @@
-// If using Node.js < v18, uncomment the next line
-// import fetch from 'node-fetch';
+// src/services/llmService.ts
 
 interface PersonaContext {
   name: string;
@@ -18,25 +17,21 @@ interface GeminiMessage {
 }
 
 // Accepts either GeminiMessage or legacy { role, content }
-// Always type guard before using .content or .parts
 function toGeminiMessages(
   history: Array<GeminiMessage | { role: string; content?: string; parts?: { text: string }[] }>
 ): GeminiMessage[] {
   return history.map((m) => {
-    if ('parts' in m && Array.isArray(m.parts)) {
-      // Already Gemini format, may be 'assistant' or 'model'
+    if ("parts" in m && Array.isArray(m.parts)) {
       return {
         role: m.role === "assistant" ? "model" : m.role === "model" ? "model" : "user",
         parts: m.parts,
       };
-    } else if ('content' in m && typeof m.content === "string") {
-      // Legacy format with content
+    } else if ("content" in m && typeof m.content === "string") {
       return {
         role: m.role === "assistant" ? "model" : m.role === "model" ? "model" : "user",
         parts: [{ text: m.content }],
       };
     } else {
-      // Fallback: use empty text
       return {
         role: m.role === "assistant" ? "model" : m.role === "model" ? "model" : "user",
         parts: [{ text: "" }],
@@ -51,63 +46,143 @@ class LLMService {
   constructor() {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('Gemini API key is required');
+      throw new Error("Gemini API key is required");
     }
     this.apiKey = apiKey;
   }
 
+  /**
+   * Legacy full-response call (no streaming)
+   */
   async generatePersonaResponse(
     studentMessage: string,
     personaContext: PersonaContext,
     conversationHistory: Array<GeminiMessage | { role: string; content?: string; parts?: { text: string }[] }>
   ): Promise<string> {
-    try {
-      const systemPrompt = this.buildSystemPrompt(personaContext);
+    const systemPrompt = this.buildSystemPrompt(personaContext);
+    const messages: GeminiMessage[] = [
+      { role: "user", parts: [{ text: `${systemPrompt}\n\n${studentMessage}` }] },
+      ...toGeminiMessages(conversationHistory),
+    ];
 
-      // Gemini expects valid GeminiMessage[] only!
-      const messages: GeminiMessage[] = [
-        { role: "user", parts: [{ text: `${systemPrompt}\n\n${studentMessage}` }] },
-        ...toGeminiMessages(conversationHistory),
-      ];
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: messages,
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 150,
-            }
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${await response.text()}`);
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: messages,
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 150,
+          },
+        }),
       }
+    );
 
-      const data = await response.json();
-      // Gemini returns output as: candidates[0].content.parts[0].text
-      const content =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "I need a moment to think about that.";
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${await response.text()}`);
+    }
 
-      return content;
-    } catch (error) {
-      console.error('LLM service error:', error);
-      throw new Error('Failed to generate response');
+    const data = await response.json();
+    return (
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "I need a moment to think about that."
+    );
+  }
+
+  /**
+   * Streaming Gemini response with chunk updates and abort support
+   */
+  async generatePersonaResponseStream(
+    studentMessage: string,
+    personaContext: PersonaContext,
+    conversationHistory: Array<GeminiMessage | { role: string; content?: string; parts?: { text: string }[] }>,
+    onChunk: (text: string) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    const systemPrompt = this.buildSystemPrompt(personaContext);
+    const messages: GeminiMessage[] = [
+      { role: "user", parts: [{ text: `${systemPrompt}\n\n${studentMessage}` }] },
+      ...toGeminiMessages(conversationHistory),
+    ];
+
+    // Note: Using "stream: true" for Gemini streaming API
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: messages,
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 150,
+          },
+          stream: true, // Request streamed output!
+        }),
+        signal: abortSignal,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${await response.text()}`);
+    }
+
+    // Read the streaming response
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No streaming body found");
+
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+
+      // Gemini streams line-delimited JSON
+      textBuffer += chunk;
+      const lines = textBuffer.split('\n');
+      textBuffer = lines.pop() || ""; // Save incomplete line for next iteration
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const obj = JSON.parse(trimmed);
+          const msg =
+            obj.candidates?.[0]?.content?.parts?.[0]?.text ||
+            obj.content?.parts?.[0]?.text ||
+            "";
+          if (msg) onChunk(msg);
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Try to flush last chunk
+    if (textBuffer.trim()) {
+      try {
+        const obj = JSON.parse(textBuffer);
+        const msg =
+          obj.candidates?.[0]?.content?.parts?.[0]?.text ||
+          obj.content?.parts?.[0]?.text ||
+          "";
+        if (msg) onChunk(msg);
+      } catch {
+          //intentional
+      }
     }
   }
 
   private buildSystemPrompt(context: PersonaContext): string {
     const intensityDescriptions = {
-      0: 'mildly annoyed but still reasonable',
-      1: 'noticeably frustrated and impatient',
-      2: 'quite angry and demanding immediate action',
-      3: 'extremely upset and potentially hostile',
+      0: "mildly annoyed but still reasonable",
+      1: "noticeably frustrated and impatient",
+      2: "quite angry and demanding immediate action",
+      3: "extremely upset and potentially hostile",
     };
     return `You are ${context.name}, a ${context.role} who is currently ${context.mood.toLowerCase()} and ${intensityDescriptions[context.intensity as keyof typeof intensityDescriptions]}.
 

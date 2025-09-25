@@ -7,11 +7,7 @@ import { VoiceControls } from '@/components/training/VoiceControls';
 import { VoiceConversation } from '@/components/training/VoiceConversation';
 import { SetupInstructions } from '@/components/training/SetupInstructions.tsx';
 import { useVoiceTraining } from '@/hooks/useVoiceTraining';
-import { 
-  scenarios, 
-  personas, 
-  type SessionState
-} from '@/data/data';
+import { scenarios, personas, type SessionState } from '@/data/data';
 import { Clock, Square, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -40,11 +36,15 @@ export default function Train() {
     background: `You are ${persona.description}`
   };
 
+  // *** Updated destructure ***
   const {
     isRecording,
     isProcessing,
     isSpeaking,
     conversation,
+    partialTranscript,
+    llmStreamingOutput,        // NEW!
+    abortLLM,                  // NEW!
     error: voiceError,
     startRecording,
     stopRecording,
@@ -110,22 +110,22 @@ export default function Train() {
             <div>
               <h1 className="text-2xl font-bold">{scenario.title}</h1>
               <p className="text-sm text-muted-foreground flex items-center gap-2">
-                {persona.name} • 
+                {persona.name} •
                 <Badge variant="outline" className="text-xs">
                   {scenario.mood}
                 </Badge>
               </p>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4" />
                 {formatTimer(session.timerSec)}
               </div>
-              
-              <Select 
-                value={session.difficulty} 
-                onValueChange={(value: 'Beginner' | 'Standard' | 'Advanced') => 
+
+              <Select
+                value={session.difficulty}
+                onValueChange={(value: 'Beginner' | 'Standard' | 'Advanced') =>
                   setSession(prev => ({ ...prev, difficulty: value }))
                 }
                 disabled={session.status === 'live'}
@@ -141,11 +141,11 @@ export default function Train() {
               </Select>
 
               <Badge variant={
-                session.status === 'live' ? 'default' : 
+                session.status === 'live' ? 'default' :
                 session.status === 'paused' ? 'secondary' : 'outline'
               }>
-                {session.status === 'idle' ? 'Idle' : 
-                 session.status === 'live' ? 'Live' : 
+                {session.status === 'idle' ? 'Idle' :
+                 session.status === 'live' ? 'Live' :
                  session.status === 'paused' ? 'Paused' : 'Ended'}
               </Badge>
 
@@ -174,7 +174,7 @@ export default function Train() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
         {/* <SetupInstructions /> */}
-        
+
         <div className="grid grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="col-span-8 space-y-6">
@@ -196,6 +196,27 @@ export default function Train() {
                 </Alert>
               )}
 
+              {/* ========= Partial Transcript Display ========= */}
+              {isRecording && (
+                <div className="partial-transcript p-3 rounded bg-muted mb-2 flex flex-col gap-1">
+                  <strong>Live Transcript:</strong>
+                  <p>{partialTranscript || "Listening..."}</p>
+                  <Button size="sm" variant="ghost" onClick={stopRecording}>
+                    Stop
+                  </Button>
+                </div>
+              )}
+              {/* ========= Partial LLM Response Display ========= */}
+              {isProcessing && (
+                <div className="partial-llm p-3 rounded bg-muted mb-2 flex flex-col gap-1">
+                  <strong>AI Response:</strong>
+                  <p>{llmStreamingOutput || "AI is responding..."}</p>
+                  <Button size="sm" variant="ghost" onClick={abortLLM}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+
               <VoiceControls
                 isRecording={isRecording}
                 isProcessing={isProcessing}
@@ -206,7 +227,7 @@ export default function Train() {
                 onStopSpeech={stopSpeech}
                 disabled={session.status !== 'live'}
               />
-                <VoiceConversation
+              <VoiceConversation
                 messages={conversation}
                 personaName={persona.name}
               />
